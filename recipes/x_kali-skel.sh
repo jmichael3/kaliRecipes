@@ -34,27 +34,27 @@ fi
 # set up working dir(s)
 for DIRECTORY in images local-config/skel local-config/backgrounds local-config/bin
 do
-	if [ ! -d "/opt/kali-build/${DIRECTORY}" ]
+	if [ ! -d "kali-build/${DIRECTORY}" ]
 	then
-		sudo mkdir -p "/opt/kali-build/${DIRECTORY}"
+		sudo mkdir -p "kali-build/${DIRECTORY}"
 	fi
 done
 CURRENT_USER="$(whoami)"
-sudo chown -R "${CURRENT_USER}:${CURRENT_USER}" /opt/kali-build
+sudo chown -R "${CURRENT_USER}:${CURRENT_USER}" kali-build
 
 
 # ensure clean build-config
 # https://gitlab.com/kalilinux/recipes/live-build-config-examples/-/blob/master/offsec-awae-live.sh
 printf "%s\n" '[*]Getting base-image build-script...'
-if [ -d /opt/kali-build/live-build-config ]
+if [ -d kali-build/live-build-config ]
 then
-	cd /opt/kali-build/live-build-config || exit 1
+	cd kali-build/live-build-config || exit 1
 	git reset --hard HEAD >/dev/null
 	git clean -f -d >/dev/null
 	git pull >/dev/null
 else
-	git clone https://gitlab.com/kalilinux/build-scripts/live-build-config.git /opt/kali-build/live-build-config
-	cd /opt/kali-build/live-build-config || exit 1
+	git clone https://gitlab.com/kalilinux/build-scripts/live-build-config.git kali-build/live-build-config
+	cd kali-build/live-build-config || exit 1
 fi
 
 
@@ -194,9 +194,9 @@ EOF
 
 
 # custom configs
-if [ ! -f /opt/kali-build/local-config/skel/.bash_aliases ]
+if [ ! -f kali-build/local-config/skel/.bash_aliases ]
 then
-	cat > /opt/kali-build/local-config/skel/.bash_aliases << EOF
+	cat > kali-build/local-config/skel/.bash_aliases << EOF
 alias lt="ls -altr"
 alias shared="cd /share && ls -altr"
 alias working="cd /home/\\\${USER}/working && ls -altr"
@@ -210,22 +210,22 @@ alias gcc="gcc -std=c99 -pedantic-errors -Wall -Wextra"
 EOF
 fi
 
-if [ ! -f /opt/kali-build/local-config/skel/.gdbinit-gef.py ]
+if [ ! -f kali-build/local-config/skel/.gdbinit-gef.py ]
 then
-	wget -O /opt/kali-build/local-config/skel/.gdbinit-gef.py -q https://gef.blah.cat/py
-	printf "%s" 'source ~/.gdbinit-gef.py' > /opt/kali-build/local-config/skel/.gdbinit
+	wget -O kali-build/local-config/skel/.gdbinit-gef.py -q https://gef.blah.cat/py
+	printf "%s" 'source ~/.gdbinit-gef.py' > kali-build/local-config/skel/.gdbinit
 fi
 
-if [ ! -f /opt/kali-build/local-config/skel/.clang-format ]
+if [ ! -f kali-build/local-config/skel/.clang-format ]
 then
 	curl -s 'https://raw.githubusercontent.com/petertorelli/clang-format-barr-c/master/.clang-format'\
-	       	-o /opt/kali-build/local-config/skel/.clang-format
+	       	-o kali-build/local-config/skel/.clang-format
 fi
 
 # https://mislav.net/2011/12/vim-revisited/
-if [ ! -f /opt/kali-build/local-config/skel/.vimrc ]
+if [ ! -f kali-build/local-config/skel/.vimrc ]
 then
-	cat > /opt/kali-build/local-config/skel/.vimrc << EOF
+	cat > kali-build/local-config/skel/.vimrc << EOF
 set nocompatible                " choose no compatibility with legacy vi
 syntax enable
 set encoding=utf-8
@@ -245,32 +245,32 @@ set ignorecase                  " searches are case insensitive...
 set smartcase                   " ... unless they contain at least one capital letter
 EOF
 fi
-find /opt/kali-build/local-config/skel/ -type f -exec cp {} kali-config/common/includes.chroot/root \;
-find /opt/kali-build/local-config/skel/ -type f -exec cp {} kali-config/common/includes.chroot/etc/skel \;
+find kali-build/local-config/skel/ -type f -exec cp {} kali-config/common/includes.chroot/root \;
+find kali-build/local-config/skel/ -type f -exec cp {} kali-config/common/includes.chroot/etc/skel \;
 
 
 # custom tools
-if [ ! -f /opt/kali-build/local-config/bin/anew ]
+if [ ! -f kali-build/local-config/bin/anew ]
 then
 	curl -s -LO 'https://github.com/tomnomnom/anew/releases/download/v0.1.1/anew-linux-386-0.1.1.tgz'
-	tar -xvzf 'anew-linux-386-0.1.1.tgz' -C /opt/kali-build/local-config/bin/
+	tar -xvzf 'anew-linux-386-0.1.1.tgz' -C kali-build/local-config/bin/
 	rm -f 'anew-linux-386-0.1.1.tgz'
 fi
-find /opt/kali-build/local-config/bin/ -type f -exec cp {} kali-config/common/includes.chroot/usr/local/bin/ \;
+find kali-build/local-config/bin/ -type f -exec cp {} kali-config/common/includes.chroot/usr/local/bin/ \;
 
 
 # custom wallpapers
-if [ ! -f /opt/kali-build/local-config/backgrounds/default-background.jpg ]
+if [ ! -f kali-build/local-config/backgrounds/default-background.jpg ]
 then
-	wget -O /opt/kali-build/local-config/backgrounds/default-background.jpg -q \
+	wget -O kali-build/local-config/backgrounds/default-background.jpg -q \
 		'https://www.pixelstalk.net/wp-content/uploads/2016/05/Futuristic-HD-Wallpapers.jpg'
 fi
-if [ ! -f /opt/kali-build/local-config/backgrounds/default-lockscreen.jpg ]
+if [ ! -f kali-build/local-config/backgrounds/default-lockscreen.jpg ]
 then
-	wget -O /opt/kali-build/local-config/backgrounds/default-lockscreen.jpg -q \
+	wget -O kali-build/local-config/backgrounds/default-lockscreen.jpg -q \
 		'https://www.pixelstalk.net/wp-content/uploads/2016/05/3D-Futuristic-Room-Wallpaper.jpg'
 fi
-find /opt/kali-build/local-config/backgrounds/ -type f -exec cp {} \
+find kali-build/local-config/backgrounds/ -type f -exec cp {} \
 	kali-config/common/includes.chroot/usr/share/backgrounds/kali/ \;
 
 
@@ -319,12 +319,12 @@ sudo ./build.sh \
 
 # post process
 isoPath=$(find images/ -name '*.iso'|head -n1)
-newIsoPath="/opt/kali-build/images/kali-x.iso"
+newIsoPath="kali-build/images/kali-x.iso"
 if [ -f "${isoPath}" ]
 then
 	printf "%s\n" "[*]Moving iso to ${newIsoPath}"
 	sudo mv "${isoPath}" "${newIsoPath}"
-	sudo chown -R "${CURRENT_USER}:${CURRENT_USER}" /opt/kali-build/images/
+	sudo chown -R "${CURRENT_USER}:${CURRENT_USER}" kali-build/images/
 else
 	printf "%s\n" '[-]Build failed'
 	exit 1
@@ -342,7 +342,7 @@ fi
 	date; date -u; date +%s; \
 	printf "\n"; \
 	kaliHash=$(md5sum "${isoPath}"); printf "%s\n" "hash: ${kaliHash}"; \
-	printf "%s\n" '======================'; } | tee -a /opt/kali-build/info.txt
+	printf "%s\n" '======================'; } | tee -a kali-build/info.txt
 
 printf "%s\n" '[+]Done!!!'
 
