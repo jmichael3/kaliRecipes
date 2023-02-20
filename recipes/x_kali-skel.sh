@@ -1,3 +1,11 @@
+if [ $# -ne 1 ]
+then
+	printf "%s\n" "[-]Usage: ${0} [IMAGE_NAME]"
+	exit 1
+else
+	IMG_NAME=$(printf "%s" "${1}"|sed 's| |_|g')
+fi
+
 # set up build environment
 if [ "$(lsb_release -si 2>/dev/null)" = 'Kali' ]
 then
@@ -12,8 +20,8 @@ then
 	printf "%s\n" '[*]Debian-based OS detected...'
 	sudo apt update -y
 	sudo apt full-upgrade -y
-	wget https://http.kali.org/pool/main/k/kali-archive-keyring/kali-archive-keyring_2022.1_all.deb
-	wget https://http.kali.org/kali/pool/main/l/live-build/live-build_20230131_all.deb
+	wget -q https://http.kali.org/pool/main/k/kali-archive-keyring/kali-archive-keyring_2022.1_all.deb
+	wget -q https://http.kali.org/kali/pool/main/l/live-build/live-build_20230131_all.deb
 	sudo apt install -y git live-build simple-cdd cdebootstrap curl wget tor torsocks
 	sudo apt install -y --fix-broken
 	sudo dpkg -i kali-archive-keyring_2022.1_all.deb
@@ -32,7 +40,7 @@ fi
 
 
 # set up working dir(s)
-for DIRECTORY in images local-config/skel local-config/backgrounds local-config/bin
+for DIRECTORY in images "local-config/${IMG_NAME}/skel" "local-config/${IMG_NAME}/backgrounds" "local-config/${IMG_NAME}/bin"
 do
 	if [ ! -d "kali-build/${DIRECTORY}" ]
 	then
@@ -117,7 +125,7 @@ printf "%s\n" '[*]Making config changes...'
 
 
 # create needed directories
-for DIRECTORY in root share etc/skel etc/skel/working usr/local/bin usr/share/backgrounds/kali
+for DIRECTORY in root share etc/skel etc/skel/working etc/systemd/system usr/local/bin usr/share/backgrounds/kali
 do
 	mkdir -p "kali-config/common/includes.chroot/${DIRECTORY}"
 done
@@ -154,12 +162,12 @@ kali-desktop-xfce
 git
 gcc
 mingw-w64
-wget
-curl
 build-essential
 make
 cmake
 nasm
+wget
+curl
 jq
 bat
 vim
@@ -178,6 +186,7 @@ python3-pwntools
 python3-scapy
 python3-impacket
 python3-pcapy
+python3-ropgadget
 libglib2.0-dev
 libc6-dbg
 clang-format
@@ -187,16 +196,61 @@ strace
 ltrace
 gdb
 ghidra
+upx-ucl
+xxd
+checksec
+binwalk
+
+# utils
+libreoffice-core
+vlc
+gimp
+thunderbird
+
+# tunneling
+sshuttle
+openvpn
+chisel
+proxychains4
+tor
+torsocks
+torbrowser-launcher
+
+# post
+peass
+linux-exploit-suggester
+python3-donut
 
 # essentials
 exploitdb
+macchanger
+hollywood
+terminator
+tmux
+screen
+htop
+bpytop
+neofetch
+locate
+xclip
+net-tools
+steghide
+gobuster
+gospider
+dirsearch
+python3-shodan
+john
+hashcat
+hashcat-utils
+seclists
+poppler-utils
 EOF
 
 
 # custom configs
-if [ ! -f kali-build/local-config/skel/.bash_aliases ]
+if [ ! -f "../local-config/${IMG_NAME}/skel/.bash_aliases" ]
 then
-	cat > kali-build/local-config/skel/.bash_aliases << EOF
+	cat > "../local-config/${IMG_NAME}/skel/.bash_aliases" << EOF
 alias lt="ls -altr"
 alias shared="cd /share && ls -altr"
 alias working="cd /home/\\\${USER}/working && ls -altr"
@@ -210,22 +264,22 @@ alias gcc="gcc -std=c99 -pedantic-errors -Wall -Wextra"
 EOF
 fi
 
-if [ ! -f kali-build/local-config/skel/.gdbinit-gef.py ]
+if [ ! -f "../local-config/${IMG_NAME}/skel/.gdbinit-gef.py" ]
 then
-	wget -O kali-build/local-config/skel/.gdbinit-gef.py -q https://gef.blah.cat/py
-	printf "%s" 'source ~/.gdbinit-gef.py' > kali-build/local-config/skel/.gdbinit
+	wget -O "../local-config/${IMG_NAME}/skel/.gdbinit-gef.py" -q https://gef.blah.cat/py
+	printf "%s" 'source ~/.gdbinit-gef.py' > "../local-config/${IMG_NAME}/skel/.gdbinit"
 fi
 
-if [ ! -f kali-build/local-config/skel/.clang-format ]
+if [ ! -f "../local-config/${IMG_NAME}/skel/.clang-format" ]
 then
 	curl -s 'https://raw.githubusercontent.com/petertorelli/clang-format-barr-c/master/.clang-format'\
-	       	-o kali-build/local-config/skel/.clang-format
+	       	-o "../local-config/${IMG_NAME}/skel/.clang-format"
 fi
 
 # https://mislav.net/2011/12/vim-revisited/
-if [ ! -f kali-build/local-config/skel/.vimrc ]
+if [ ! -f "../local-config/${IMG_NAME}/skel/.vimrc" ]
 then
-	cat > kali-build/local-config/skel/.vimrc << EOF
+	cat > "../local-config/${IMG_NAME}/skel/.vimrc" << EOF
 set nocompatible                " choose no compatibility with legacy vi
 syntax enable
 set encoding=utf-8
@@ -245,42 +299,76 @@ set ignorecase                  " searches are case insensitive...
 set smartcase                   " ... unless they contain at least one capital letter
 EOF
 fi
-find kali-build/local-config/skel/ -type f -exec cp {} kali-config/common/includes.chroot/root \;
-find kali-build/local-config/skel/ -type f -exec cp {} kali-config/common/includes.chroot/etc/skel \;
+find "../local-config/${IMG_NAME}/skel/" -type f -exec cp {} kali-config/common/includes.chroot/root \;
+find "../local-config/${IMG_NAME}/skel/" -type f -exec cp {} kali-config/common/includes.chroot/etc/skel \;
 
 
 # custom tools
-if [ ! -f kali-build/local-config/bin/anew ]
+if [ ! -f "../local-config/${IMG_NAME}/bin/anew" ]
 then
 	curl -s -LO 'https://github.com/tomnomnom/anew/releases/download/v0.1.1/anew-linux-386-0.1.1.tgz'
-	tar -xvzf 'anew-linux-386-0.1.1.tgz' -C kali-build/local-config/bin/
+	tar -xvzf 'anew-linux-386-0.1.1.tgz' -C "../local-config/${IMG_NAME}/bin/"
 	rm -f 'anew-linux-386-0.1.1.tgz'
 fi
-find kali-build/local-config/bin/ -type f -exec cp {} kali-config/common/includes.chroot/usr/local/bin/ \;
+
+if [ ! -f "../local-config/${IMG_NAME}/bin/xresize" ]
+then
+	cat > "../local-config/${IMG_NAME}/bin/xresize" << EOF
+PATH=/usr/bin
+DISPLAY=:0
+export DISPLAY
+desktopuser="\$(/bin/ps -ef  | /bin/grep -oP '^\\w+ (?=.*vdagent( |$))')" || exit 0
+XAUTHORITY=\$(eval echo "~\$desktopuser")/.Xauthority
+export XAUTHORITY
+xrandr --output "\$(xrandr | awk '/ connected/{print \$1; exit; }')" --auto
+EOF
+fi
+
+if [ ! -f "../local-config/${IMG_NAME}/bin/ms" ]
+then
+	cat > "../local-config/${IMG_NAME}/bin/ms" << EOF
+mount -t 9p -o trans=virtio /share /share/
+EOF
+fi
+
+find "../local-config/${IMG_NAME}/bin/" -type f -exec cp {} kali-config/common/includes.chroot/usr/local/bin/ \;
 
 
 # custom wallpapers
-if [ ! -f kali-build/local-config/backgrounds/default-background.jpg ]
+if [ ! -f "../local-config/${IMG_NAME}/backgrounds/default-background.jpg" ]
 then
-	wget -O kali-build/local-config/backgrounds/default-background.jpg -q \
+	wget -O "../local-config/${IMG_NAME}/backgrounds/default-background.jpg" -q \
 		'https://www.pixelstalk.net/wp-content/uploads/2016/05/Futuristic-HD-Wallpapers.jpg'
 fi
-if [ ! -f kali-build/local-config/backgrounds/default-lockscreen.jpg ]
+if [ ! -f "../local-config/${IMG_NAME}/backgrounds/default-lockscreen.jpg" ]
 then
-	wget -O kali-build/local-config/backgrounds/default-lockscreen.jpg -q \
+	wget -O "../local-config/${IMG_NAME}/backgrounds/default-lockscreen.jpg" -q \
 		'https://www.pixelstalk.net/wp-content/uploads/2016/05/3D-Futuristic-Room-Wallpaper.jpg'
 fi
-find kali-build/local-config/backgrounds/ -type f -exec cp {} \
+find "../local-config/${IMG_NAME}/backgrounds/" -type f -exec cp {} \
 	kali-config/common/includes.chroot/usr/share/backgrounds/kali/ \;
 
 
 # startup actions
+# https://forums.kali.org/showthread.php?36072-SOLVED-Could-not-change-MAC-amp-Setup-Macchanger-auto-spoofing-randomization-in-Kali
+cat > kali-config/common/includes.chroot/etc/systemd/system/macspoof@.service << EOF
+[Unit]
+Description=macchanger on %I
+Wants=network-pre.target
+Before=network-pre.target
+After=sys-subsystem-net-devices-%i.device
+
+[Service]
+ExecStart=/usr/bin/macchanger -r %I
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target 
+EOF
+
 cat > kali-config/common/hooks/live/01-my-custom-hooks.chroot << EOF
 # change binaries to executable
-for BIN in \$(ls -a1 /usr/local/bin/)
-do
-	chmod +x "/usr/local/bin/\${BIN}"
-done
+find /usr/local/bin/ -type f -exec chmod +x {} \;
 
 # change default backgrounds
 unlink /usr/share/backgrounds/kali-16x9/default
@@ -288,17 +376,22 @@ ln -s /usr/share/backgrounds/kali/default-background.jpg /usr/share/backgrounds/
 
 unlink /usr/share/desktop-base/kali-theme/login/background
 ln -s /usr/share/backgrounds/kali/default-lockscreen.jpg /usr/share/desktop-base/kali-theme/login/background
+
+# startup services
+systemctl enable macspoof@wlan0.service 
+systemctl enable macspoof@wlan1.service 
+systemctl enable macspoof@wlan2.service 
 EOF
 chmod +x kali-config/common/hooks/live/01-my-custom-hooks.chroot
 
 
 # change boot options
 sed -i "s|--bootappend-live \"boot=live components quiet splash noeject\"\
-|--bootappend-live \"boot=live components quiet nosplash noeject toram systemd.swap=no noautomount nozsh\"\
+|--bootappend-live \"boot=live components quiet splash noeject toram systemd.swap=no noautomount nozsh\"\
 |g" auto/config
 
 sed -i "s|--bootappend-install \"net.ifnames=0\"\
-|--bootappend-install \"boot=live components quiet nosplash noeject toram systemd.swap=no noautomount nozsh\"\
+|--bootappend-install \"net.ifnames=0 nozsh\"\
 |g" auto/config
 
 sed -i 's|insmod play|#insmod play|g' kali-config/common/bootloaders/grub-pc/config.cfg
@@ -318,13 +411,14 @@ sudo ./build.sh \
 
 
 # post process
-isoPath=$(find images/ -name '*.iso'|head -n1)
-newIsoPath="kali-build/images/kali-x.iso"
+cd ../ || exit 1
+isoPath=$(find live-build-config/images/ -name '*.iso'|head -n1)
+newIsoPath="images/${IMG_NAME}.iso"
 if [ -f "${isoPath}" ]
 then
-	printf "%s\n" "[*]Moving iso to ${newIsoPath}"
+	printf "%s\n" "[*]Moving iso to ${PWD}/${newIsoPath}"
 	sudo mv "${isoPath}" "${newIsoPath}"
-	sudo chown -R "${CURRENT_USER}:${CURRENT_USER}" kali-build/images/
+	sudo chown -R "${CURRENT_USER}:${CURRENT_USER}" images/
 else
 	printf "%s\n" '[-]Build failed'
 	exit 1
@@ -337,12 +431,12 @@ else
 	printf "%s\n" '[-]Failed to move iso...'
 fi
 
-{ printf "%s\n" 'kali-x'; \
+{ printf "%s\n" "${IMG_NAME}"; \
 	printf "%s\n" '----------------------'; \
 	date; date -u; date +%s; \
 	printf "\n"; \
 	kaliHash=$(md5sum "${isoPath}"); printf "%s\n" "hash: ${kaliHash}"; \
-	printf "%s\n" '======================'; } | tee -a kali-build/info.txt
+	printf "%s\n" '======================'; } | tee -a info.txt
 
 printf "%s\n" '[+]Done!!!'
 
